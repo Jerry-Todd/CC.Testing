@@ -67,36 +67,51 @@ function buildGrid()
     return grid
 end
 
-function findPath(grid, start, goal)
-    startKey = tKey(start)
-    goalKey = tKey(goal)
+function findPath(grid, start, goal, isTarget)
+    isTarget = isTarget or false
+    local startKey = tKey(start)
+    local goalKey = tKey(goal)
     if not grid[startKey] or not grid[goalKey] then
         return nil
     end
 
     local queue = {start}
-    local visited = {
-        startKey = true
-    }
+    local visited = {}
+    visited[startKey] = true
     local parent = {}
     local current
+    local found = false
+    local targetKeys = {[goalKey] = true}
 
-    while #queue > 0 do
-        current = table.remove(queue, 1)
-        if tKey(current) == goalKey then
-            break
-        end
-        local neighbors = tGetNeighbors(current)
+    -- If isTarget, add all walkable neighbors of goal as valid targets
+    if isTarget then
+        local neighbors = tGetNeighbors(goal)
         for _, n in ipairs(neighbors) do
-            if grid[tKey(n)] and not visited[tKey(n)] then
-                table.insert(queue, n)
-                visited[tKey(n)] = true
-                parent[tKey(n)] = current
+            local nKey = tKey(n)
+            if grid[nKey] then
+                targetKeys[nKey] = true
             end
         end
     end
 
-    if tKey(current) ~= goalKey then
+    while #queue > 0 do
+        current = table.remove(queue, 1)
+        if targetKeys[tKey(current)] then
+            found = true
+            break
+        end
+        local neighbors = tGetNeighbors(current)
+        for _, n in ipairs(neighbors) do
+            local nKey = tKey(n)
+            if grid[nKey] and not visited[nKey] then
+                table.insert(queue, n)
+                visited[nKey] = true
+                parent[nKey] = current
+            end
+        end
+    end
+
+    if not found then
         return nil -- No path found
     end
     local path = {}
@@ -136,18 +151,23 @@ function pathToDirections(path)
     return directions
 end
 
-function M.pathfind(goal)
+function M.pathfind(goal, isTarget)
+    isTarget = isTarget or false
     local start = turt.getpos()
     local grid = buildGrid()
     local path = findPath(grid, start, goal)
     if not path then
-        warn('path not found')
+        print('path not found')
         return
     end
     local directions = pathToDirections(path)
     print('Moving...')
-    for _, d in ipairs(directions) do
-        turt.move(d)
+    for i, d in ipairs(directions) do
+        if i ~= d then
+            turt.move(d)
+        else
+            turt.turn(d)
+        end
     end
 end
 
