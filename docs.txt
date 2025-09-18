@@ -1,0 +1,8 @@
+
+directions:
+    1-north
+    2-east
+    3-south
+    4-west
+    5-up
+    6-down
