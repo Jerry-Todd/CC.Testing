@@ -67,51 +67,47 @@ function buildGrid()
     return grid
 end
 
-function findPath(grid, start, goal, isTarget)
-    isTarget = isTarget or false
+function findPath(grid, start, goal, ignoreGoal)
+    if ignoreGoal then
+        print('Ignoring goal')
+    end
     local startKey = tKey(start)
     local goalKey = tKey(goal)
-    if not grid[startKey] or not grid[goalKey] then
+    if not grid[startKey] or (not grid[goalKey] and not ignoreGoal) then
         return nil
     end
 
     local queue = {start}
-    local visited = {}
-    visited[startKey] = true
+    local visited = {[startKey]=true}
     local parent = {}
     local current
-    local found = false
-    local targetKeys = {[goalKey] = true}
+    local goals = {[goalKey]=true}
 
-    -- If isTarget, add all walkable neighbors of goal as valid targets
-    if isTarget then
+    if ignoreGoal then
         local neighbors = tGetNeighbors(goal)
         for _, n in ipairs(neighbors) do
-            local nKey = tKey(n)
-            if grid[nKey] then
-                targetKeys[nKey] = true
+            if grid[tKey(n)] then
+                goals[tKey(n)] = true
             end
         end
     end
 
     while #queue > 0 do
         current = table.remove(queue, 1)
-        if targetKeys[tKey(current)] then
-            found = true
+        if goals[tKey(current)] then
             break
         end
         local neighbors = tGetNeighbors(current)
         for _, n in ipairs(neighbors) do
-            local nKey = tKey(n)
-            if grid[nKey] and not visited[nKey] then
+            if grid[tKey(n)] and not visited[tKey(n)] then
                 table.insert(queue, n)
-                visited[nKey] = true
-                parent[nKey] = current
+                visited[tKey(n)] = true
+                parent[tKey(n)] = current
             end
         end
     end
 
-    if not found then
+    if not goals[tKey(current)] then
         return nil -- No path found
     end
     local path = {}
@@ -120,6 +116,9 @@ function findPath(grid, start, goal, isTarget)
         current = parent[tKey(current)]
     end
     table.insert(path, 1, current)
+    if ignoreGoal then
+        table.insert(path, goal)
+    end
 
     return path
 end
@@ -151,11 +150,10 @@ function pathToDirections(path)
     return directions
 end
 
-function M.pathfind(goal, isTarget)
-    isTarget = isTarget or false
+function M.pathfind(goal, ignoreGoal)
     local start = turt.getpos()
     local grid = buildGrid()
-    local path = findPath(grid, start, goal)
+    local path = findPath(grid, start, goal, ignoreGoal)
     if not path then
         print('path not found')
         return
@@ -163,11 +161,11 @@ function M.pathfind(goal, isTarget)
     local directions = pathToDirections(path)
     print('Moving...')
     for i, d in ipairs(directions) do
-        if i ~= d then
-            turt.move(d)
-        else
+        if i == #directions and ignoreGoal then
             turt.turn(d)
+            break
         end
+        turt.move(d)
     end
 end
 

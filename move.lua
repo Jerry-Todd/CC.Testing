@@ -86,8 +86,13 @@ function change_xy(dir)
 end
 
 function M.getpos()
-    return { x=y, y=y, z=z }
+    return {
+        x = storage.get('x') or 0,
+        y = storage.get('y') or 0,
+        z = storage.get('z') or 0
+    }
 end
+
 
 return M
 
