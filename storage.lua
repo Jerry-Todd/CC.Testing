@@ -29,4 +29,12 @@ function M.set(key, value)
   save(data)
 end
 
+local args = {...}
+if args[1] == 'delete' then
+  if args[2] == '*' then
+    save({})
+  end
+  M.set(args[2], nil)
+end
+
 return M

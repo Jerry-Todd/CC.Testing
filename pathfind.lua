@@ -1,12 +1,14 @@
 -- astar.lua
 local turt = require("move")
 local area = require("area")
+local storage = require("storage")
 
 local M = {}
 
 function key(x, y, z)
     return x .. ',' .. y .. ',' .. z
 end
+
 function tKey(t)
     return key(t.x, t.y, t.z)
 end
@@ -56,13 +58,13 @@ function buildGrid()
         for y = room.close.y, room.far.y, 1 do
             for x = room.close.x, room.far.x, 1 do
                 for z = room.close.z, room.far.z, 1 do
-                    grid[x .. ',' .. y .. ',' .. z] = true
+                    grid[key(x, y, z)] = true
                 end
             end
         end
     end
     for _, block in ipairs(area.blocks) do
-        grid[block.x .. ',' .. block.y .. ',' .. block.z] = false
+        grid[tKey(block)] = false
     end
     return grid
 end
@@ -77,11 +79,11 @@ function findPath(grid, start, goal, ignoreGoal)
         return nil
     end
 
-    local queue = {start}
-    local visited = {[startKey]=true}
+    local queue = { start }
+    local visited = { [startKey] = true }
     local parent = {}
     local current
-    local goals = {[goalKey]=true}
+    local goals = { [goalKey] = true }
 
     if ignoreGoal then
         local neighbors = tGetNeighbors(goal)
@@ -144,7 +146,6 @@ function pathToDirections(path)
         elseif dy == -1 then
             table.insert(directions, 6)
         end
-
     end
 
     return directions
@@ -152,11 +153,19 @@ end
 
 function M.pathfind(goal, ignoreGoal)
     local start = turt.getpos()
-    local grid = buildGrid()
-    local path = findPath(grid, start, goal, ignoreGoal)
+    local position = start
+    local grid = storage.get('grid') or buildGrid()
+    ::path::
+    position = turt.getpos()
+    local path = findPath(grid, position, goal, ignoreGoal)
     if not path then
-        print('path not found')
-        return
+        print('Path not found')
+        print('Going back to start')
+        path = findPath(grid, position, start, false)
+        if not path then
+            print('Cant get back to start :(')
+            return
+        end
     end
     local directions = pathToDirections(path)
     print('Moving...')
@@ -165,7 +174,12 @@ function M.pathfind(goal, ignoreGoal)
             turt.turn(d)
             break
         end
-        turt.move(d)
+        if not turt.move(d) then
+            print('Path blocked at:', tKey(path[i + 1]))
+            grid[tKey(path[i + 1])] = false
+            storage.set('grid', grid)
+            goto path
+        end
     end
 end
 
