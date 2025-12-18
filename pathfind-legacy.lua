@@ -52,40 +52,34 @@ function TGetNeighbors(t)
     return GetNeighbors(t.x, t.y, t.z)
 end
 
-function ManhattanDistance(a, b)
-    return math.abs(a.x - b.x) + math.abs(a.y - b.y) + math.abs(a.z - b.z)
-end
-
-function InsertSorted(queue, node, priority)
-    for i = 1, #queue do
-        if priority < queue[i].priority then
-            table.insert(queue, i, {node = node, priority = priority})
-            return
+function BuildGrid()
+    local grid = {}
+    for _, room in ipairs(area.rooms) do
+        for y = room.close.y, room.far.y, 1 do
+            for x = room.close.x, room.far.x, 1 do
+                for z = room.close.z, room.far.z, 1 do
+                    grid[Key(x, y, z)] = true
+                end
+            end
         end
     end
-    table.insert(queue, {node = node, priority = priority})
-end
-
-function BuildBlockGrid()
-    local grid = {}
     for _, block in ipairs(area.blocks) do
-        grid[TKey(block)] = true
+        grid[TKey(block)] = false
     end
     return grid
 end
 
-function FindPath(blockGrid, start, goal, ignoreGoal)
+function FindPath(grid, start, goal, ignoreGoal)
     if ignoreGoal then
         print('Ignoring goal')
     end
     local startKey = TKey(start)
     local goalKey = TKey(goal)
-    if blockGrid[startKey] or (blockGrid[goalKey] and not ignoreGoal) then
+    if not grid[startKey] or (not grid[goalKey] and not ignoreGoal) then
         return nil
     end
 
-    local queue = {}
-    InsertSorted(queue, start, ManhattanDistance(start, goal))
+    local queue = { start }
     local visited = { [startKey] = true }
     local parent = {}
     local current
@@ -94,23 +88,21 @@ function FindPath(blockGrid, start, goal, ignoreGoal)
     if ignoreGoal then
         local neighbors = TGetNeighbors(goal)
         for _, n in ipairs(neighbors) do
-            if not blockGrid[TKey(n)] then
+            if grid[TKey(n)] then
                 goals[TKey(n)] = true
             end
         end
     end
 
     while #queue > 0 do
-        local item = table.remove(queue, 1)
-        current = item.node
+        current = table.remove(queue, 1)
         if goals[TKey(current)] then
             break
         end
         local neighbors = TGetNeighbors(current)
         for _, n in ipairs(neighbors) do
-            if not blockGrid[TKey(n)] and not visited[TKey(n)] then
-                local priority = ManhattanDistance(n, goal)
-                InsertSorted(queue, n, priority)
+            if grid[TKey(n)] and not visited[TKey(n)] then
+                table.insert(queue, n)
                 visited[TKey(n)] = true
                 parent[TKey(n)] = current
             end
@@ -133,7 +125,7 @@ function FindPath(blockGrid, start, goal, ignoreGoal)
     return path
 end
 
-function PathToDirections(path)
+function pathToDirections(path)
     local directions = {}
 
     for i = 2, #path, 1 do
@@ -161,20 +153,21 @@ end
 
 function M.pathfind(goal, ignoreGoal)
     local start = turt.getpos()
-    local blockGrid = storage.get('grid') or BuildBlockGrid()
+    local position = start
+    local grid = storage.get('grid') or BuildGrid()
     ::path::
-    local position = turt.getpos()
-    local path = FindPath(blockGrid, position, goal, ignoreGoal)
+    position = turt.getpos()
+    local path = FindPath(grid, position, goal, ignoreGoal)
     if not path then
         print('Path not found')
         print('Going back to start')
-        path = FindPath(blockGrid, position, start, false)
+        path = FindPath(grid, position, start, false)
         if not path then
             print('Cant get back to start :(')
             return
         end
     end
-    local directions = PathToDirections(path)
+    local directions = pathToDirections(path)
     print('Moving...')
     for i, d in ipairs(directions) do
         if i == #directions and ignoreGoal then
@@ -183,8 +176,8 @@ function M.pathfind(goal, ignoreGoal)
         end
         if not turt.move(d) then
             print('Path blocked at:', TKey(path[i + 1]))
-            blockGrid[TKey(path[i + 1])] = true
-            storage.set('grid', blockGrid)
+            grid[TKey(path[i + 1])] = false
+            storage.set('grid', grid)
             goto path
         end
     end

@@ -5,9 +5,11 @@ local storage = require("storage")
 
 local args = {...}
 
-local x = storage.get('x') or 0
-local y = storage.get('y') or 0
-local z = storage.get('z') or 0
+local x,y,z = gps.locate()
+
+x = x or storage.get('x') or 0
+y = y or storage.get('y') or 0
+z = z or storage.get('z') or 0
 local facing = storage.get('facing') or 1
 storage.set('x', x)
 storage.set('y', y)
