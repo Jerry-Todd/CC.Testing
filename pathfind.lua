@@ -1,6 +1,5 @@
 -- astar.lua
 local turt = require("move")
-local area = require("area")
 local storage = require("storage")
 
 local M = {}
@@ -64,14 +63,6 @@ function InsertSorted(queue, node, priority)
         end
     end
     table.insert(queue, {node = node, priority = priority})
-end
-
-function BuildBlockGrid()
-    local grid = {}
-    for _, block in ipairs(area.blocks) do
-        grid[TKey(block)] = true
-    end
-    return grid
 end
 
 function FindPath(blockGrid, start, goal, ignoreGoal)
@@ -142,13 +133,13 @@ function PathToDirections(path)
         local dz = path[i].z - path[i - 1].z
 
         if dx == 1 then
-            table.insert(directions, 2)
+            table.insert(directions, 2) -- East
         elseif dx == -1 then
-            table.insert(directions, 4)
-        elseif dz == 1 then
-            table.insert(directions, 1)
+            table.insert(directions, 4) -- West
         elseif dz == -1 then
-            table.insert(directions, 3)
+            table.insert(directions, 1) -- North
+        elseif dz == 1 then
+            table.insert(directions, 3) -- South
         elseif dy == 1 then
             table.insert(directions, 5)
         elseif dy == -1 then
@@ -161,7 +152,7 @@ end
 
 function M.pathfind(goal, ignoreGoal)
     local start = turt.getpos()
-    local blockGrid = storage.get('grid') or BuildBlockGrid()
+    local blockGrid = storage.get('grid') or {}
     ::path::
     local position = turt.getpos()
     local path = FindPath(blockGrid, position, goal, ignoreGoal)
