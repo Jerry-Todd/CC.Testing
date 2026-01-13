@@ -109,9 +109,3 @@ function M.getpos()
 end
 
 return M
-
--- for _, value in ipairs(args) do
---     print('Move: ' .. value .. ' from ' .. x .. ' ' .. y .. ' ' .. z)
---     move(tonumber(value))
---     print('Moved to ' .. x .. ' ' .. y .. ' ' .. z)
--- end
