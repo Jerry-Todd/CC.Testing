@@ -92,8 +92,32 @@ function FindPath(blockGrid, start, goal, ignoreGoal)
     end
 
     while #queue > 0 do
-        local item = table.remove(queue, 1)
-        current = item.node
+        -- Check if any adjacent blocks are in the queue and prioritize them
+        local currentPos = turt.getpos()
+        local adjacentNeighbors = TGetNeighbors(currentPos)
+        local foundAdjacent = false
+        
+        for i = 1, #queue do
+            for _, neighbor in ipairs(adjacentNeighbors) do
+                if TKey(queue[i].node) == TKey(neighbor) then
+                    -- Found an adjacent block in queue, process it first
+                    local item = table.remove(queue, i)
+                    current = item.node
+                    foundAdjacent = true
+                    break
+                end
+            end
+            if foundAdjacent then
+                break
+            end
+        end
+        
+        -- If no adjacent blocks found, use normal priority order
+        if not foundAdjacent then
+            local item = table.remove(queue, 1)
+            current = item.node
+        end
+        
         if goals[TKey(current)] then
             break
         end

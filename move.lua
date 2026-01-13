@@ -56,32 +56,32 @@ function M.move(dir)
         if dir > 4 then
             if dir == 5 then
                 if turtle.up() then
-                    move_xy(dir)
+                    refresh_pos()
                     return true
                 end
             elseif dir == 6 then
                 if turtle.down() then
-                    move_xy(dir)
+                    refresh_pos()
                     return true
                 end
             end
         elseif math.abs(dir - facing) == 2 then
             if turtle.back() then
                 local backwards = ((facing + 1) % 4) + 1
-                move_xy(backwards)
+                refresh_pos()
                 return true
             end
         else
             M.turn(dir)
             if turtle.forward() then
-                move_xy(dir)
+                refresh_pos()
                 return true
             end
         end
     end
-    move = move()
-    if move then refresh_pos() end
-    return move
+    local res = move()
+    if res then refresh_pos() end
+    return res
 end
 
 function M.turn(dir)
@@ -98,27 +98,6 @@ function M.turn(dir)
         turtle.turnLeft()
     end
     facing = dir
-end
-
-function move_xy(dir)
-    if dir == 1 then
-        z = z - 1
-    end
-    if dir == 3 then
-        z = z + 1
-    end
-    if dir == 2 then
-        x = x + 1
-    end
-    if dir == 4 then
-        x = x - 1
-    end
-    if dir == 5 then
-        y = y + 1
-    end
-    if dir == 6 then
-        y = y - 1
-    end
 end
 
 function M.getpos()
