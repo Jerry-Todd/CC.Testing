@@ -1,48 +1,87 @@
-
 local M = {}
 
 local storage = require("storage")
 
-local args = {...}
+local args = { ... }
 
-local x,y,z = gps.locate()
+local x, y, z = gps.locate()
 
-x = x or storage.get('x') or 0
-y = y or storage.get('y') or 0
-z = z or storage.get('z') or 0
-local facing = storage.get('facing') or 1
-storage.set('x', x)
-storage.set('y', y)
-storage.set('z', z)
-storage.set('facing', facing)
+local facing = nil
+
+local function refresh_pos()
+    local _x, _y, _z = gps.locate()
+    if _x then
+        x, y, z = _x, _y, _z
+        print(x .. " " .. y .. " " .. z)
+    else
+        print("GPS unavailable")
+    end
+end
+
+function M.CalibrateDir()
+    local dir = function()
+        -- refresh our current position from GPS for accurate deltas
+        local _ox, _oy, _oz = gps.locate()
+        if not _ox then return nil end
+
+        for i = 1, 4 do
+            if turtle.forward() then
+                local _x, _y, _z = gps.locate()
+                turtle.back()
+                -- forward step delta (new - old): -z = north, +z = south, +x = east, -x = west
+                _x, _y, _z = _x - _ox, _y - _oy, _z - _oz
+                if _z == -1 then
+                    return 1
+                elseif _z == 1 then
+                    return 3
+                elseif _x == 1 then
+                    return 2
+                elseif _x == -1 then
+                    return 4
+                end
+                return
+            else
+                turtle.turnRight() -- try next direction
+            end
+        end
+        return nil
+    end
+    facing = dir()
+end
+
+M.CalibrateDir()
 
 function M.move(dir)
-    if dir > 4 then
-        if dir == 5 then
-            if turtle.up() then
-                change_xy(dir)
+    local move = function()
+        if dir > 4 then
+            if dir == 5 then
+                if turtle.up() then
+                    move_xy(dir)
+                    return true
+                end
+            elseif dir == 6 then
+                if turtle.down() then
+                    move_xy(dir)
+                    return true
+                end
+            end
+        elseif math.abs(dir - facing) == 2 then
+            if turtle.back() then
+                local backwards = ((facing + 1) % 4) + 1
+                move_xy(backwards)
                 return true
             end
-        elseif dir == 6 then
-            if turtle.down() then
-                change_xy(dir)
+        else
+            M.turn(dir)
+            if turtle.forward() then
+                move_xy(dir)
                 return true
             end
-        end
-    elseif math.abs(dir - facing) == 2 then
-        if turtle.back() then
-            local backwards = ((facing + 1) % 4) + 1
-            change_xy(backwards)
-            return true
-        end
-    else
-        M.turn(dir)
-        if turtle.forward() then
-            change_xy(dir)
-            return true
         end
     end
-    return false
+    move = move()
+    if move then refresh_pos() end
+    return move
 end
 
 function M.turn(dir)
@@ -59,15 +98,14 @@ function M.turn(dir)
         turtle.turnLeft()
     end
     facing = dir
-    storage.set('facing', facing)
 end
 
-function change_xy(dir)
+function move_xy(dir)
     if dir == 1 then
-        z = z + 1
+        z = z - 1
     end
     if dir == 3 then
-        z = z - 1
+        z = z + 1
     end
     if dir == 2 then
         x = x + 1
@@ -81,20 +119,15 @@ function change_xy(dir)
     if dir == 6 then
         y = y - 1
     end
-    storage.set('x', x)
-    storage.set('y', y)
-    storage.set('z', z)
-    print(x..' '..y..' '..z)
 end
 
 function M.getpos()
     return {
-        x = storage.get('x') or 0,
-        y = storage.get('y') or 0,
-        z = storage.get('z') or 0
+        x = x,
+        y = y,
+        z = z
     }
 end
-
 
 return M
 
