@@ -1,5 +1,5 @@
 -- astar.lua
-local turt = require("move")
+local turt = require("turtleutil")
 local storage = require("storage")
 
 local M = {}
